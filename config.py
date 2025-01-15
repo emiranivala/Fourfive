@@ -3,14 +3,14 @@
 
 from os import getenv
 
-API_ID = int(getenv("API_ID", ""))
-API_HASH = getenv("API_HASH", "")
+API_ID = int(getenv("API_ID", "24210243"))
+API_HASH = getenv("API_HASH", " 509031fb3790b968e489f71d591ebce5")
 BOT_TOKEN = getenv("BOT_TOKEN", "")
-OWNER_ID = list(map(int, getenv("OWNER_ID", "").split()))
+OWNER_ID = list(map(int, getenv("OWNER_ID", "8050649116").split()))
 MONGO_DB = getenv("MONGO_DB", "")
-LOG_GROUP = getenv("LOG_GROUP", "")
-CHANNEL_ID = int(getenv("CHANNEL_ID", ""))
-FREEMIUM_LIMIT = int(getenv("FREEMIUM_LIMIT", "0"))
+LOG_GROUP = getenv("LOG_GROUP", "-1002294535138")
+CHANNEL_ID = int(getenv("CHANNEL_ID", "-1002458919549"))
+FREEMIUM_LIMIT = int(getenv("FREEMIUM_LIMIT", "5"))
 PREMIUM_LIMIT = int(getenv("PREMIUM_LIMIT", "500"))
 
 #AutoDeleteTime
