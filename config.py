@@ -14,4 +14,4 @@ FREEMIUM_LIMIT = int(getenv("FREEMIUM_LIMIT", "500"))
 PREMIUM_LIMIT = int(getenv("PREMIUM_LIMIT", "50000"))
 
 #AutoDeleteTime
-SECONDS = int(getenv("SECONDS", "3000000")) #5_minutes
+SECONDS = int(getenv("SECONDS", "527040")) #5_minutes
