@@ -9,7 +9,7 @@ BOT_TOKEN = getenv("BOT_TOKEN", "")
 OWNER_ID = list(map(int, getenv("OWNER_ID", "7355491726").split()))
 MONGO_DB = getenv("MONGO_DB", "")
 LOG_GROUP = getenv("LOG_GROUP", "-1002262642477")
-CHANNEL_ID = int(getenv("CHANNEL_ID", "-1002363540243"))
+CHANNEL_ID = int(getenv("CHANNEL_ID", "-1002466180050"))
 FREEMIUM_LIMIT = int(getenv("FREEMIUM_LIMIT", "50"))
 PREMIUM_LIMIT = int(getenv("PREMIUM_LIMIT", "50000000"))
 
