@@ -183,7 +183,7 @@ def load_authorized_users():
     authorized_users = set()
     for user_doc in collection.find():
         if "user_id" in user_doc:
-            authorized users.add(user_doc["user_id"])
+            authorized_users.add(user_doc["user_id"])
     return authorized_users
 
 def save_authorized_users(authorized_users):
@@ -301,8 +301,7 @@ async def settings_command(event):
         caption=MESS,
         buttons=buttons
     )
-
-pending_photos = {}
+    pending_photos = {}
 
 @gf.on(events.CallbackQuery)
 async def callback_query_handler(event):
@@ -448,3 +447,5 @@ async def handle_user_input(event):
             await event.respond(f"An error occurred: {str(e)}")
         finally:
             del sessions[user_id]
+                
+   
