@@ -183,7 +183,7 @@ def load_authorized_users():
     authorized_users = set()
     for user_doc in collection.find():
         if "user_id" in user_doc:
-            authorized_users.add(user_doc["user_id"])
+            authorized users.add(user_doc["user_id"])
     return authorized_users
 
 def save_authorized_users(authorized_users):
@@ -247,7 +247,7 @@ def save_replacement_words(user_id, replacements):
 # Initialize the dictionary to store user preferences for renaming
 user_rename_preferences = {}
 
-# Initialize the dictionary to store user caption
+# Initialize the dictionary to store user caption preferences
 user_caption_preferences = {}
 
 # Function to load user session from MongoDB
@@ -276,7 +276,7 @@ async def set_caption_command(user_id, custom_caption):
 # Function to get the user's custom caption preference
 def get_user_caption_preference(user_id):
     # Retrieve the user's custom caption if set, or default to an empty string
-    return user_caption_preferences.get(str(user_id), ''
+    return user_caption_preferences.get(str(user_id), '')
 
 # Initialize the dictionary to store user sessions
 sessions = {}
@@ -329,7 +329,7 @@ async def callback_query_handler(event):
         # sessions[user_id] = 'addsession' (If you want to enable session based login just uncomment this and modify response message accordingly)
 
     elif event.data == b'delete':
-        await event.respond("Send words seperated by space to delete them from caption/filename ...")
+        await event.respond("Send words separated by space to delete them from caption/filename ...")
         sessions[user_id] = 'deleteword'
         
     elif event.data == b'logout':
@@ -448,4 +448,3 @@ async def handle_user_input(event):
             await event.respond(f"An error occurred: {str(e)}")
         finally:
             del sessions[user_id]
-
