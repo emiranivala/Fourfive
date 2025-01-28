@@ -171,8 +171,6 @@ async def copy_message_with_chat_id(client, sender, chat_id, message_id):
 
 # ------------------------ Button Mode Editz FOR SETTINGS ----------------------------
 
-# ------------------------ Button Mode Editz FOR SETTINGS ----------------------------
-
 DB_NAME = "smart_users"
 COLLECTION_NAME = "super_user"
 
@@ -278,8 +276,7 @@ async def set_caption_command(user_id, custom_caption):
 def get_user_caption_preference(user_id):
     # Retrieve the user's custom caption if set, or default to an empty string
     return user_caption_preferences.get(str(user_id), '')
-
-# Initialize the dictionary to store user sessions
+    # Initialize the dictionary to store user sessions
 sessions = {}
 
 SET_PIC = "settings.jpg"
@@ -432,26 +429,22 @@ async def handle_user_input(event):
                 }
                 mcollection.update_one(
                     {"user_id": user_id},
-                    {"user_id": user_id},
                     {"$set": session_data},
                     upsert=True
-            )
-            await event.respond("Session string added successfully.")
+                )
+                await event.respond("Session string added successfully.")
 
-        elif session_type == 'deleteword':
-            words_to_delete = event.message.text.split()
-            delete_words = load_delete_words(user_id)
-            delete_words.update(words_to_delete)
-            save_delete_words(user_id, delete_words)
-            await event.respond(f"Words added to delete list: {', '.join(words_to_delete)}")
+            elif session_type == 'deleteword':
+                words_to_delete = event.message.text.split()
+                delete_words = load_delete_words(user_id)
+                delete_words.update(words_to_delete)
+                save_delete_words(user_id, delete_words)
+                await event.respond(f"Words added to delete list: {', '.join(words_to_delete)}")
 
-        del sessions[user_id]
-
-    except ValueError:
-        await event.respond("Invalid input! Please ensure the input format is correct.")
-    except Exception as e:
-        await event.respond(f"An error occurred: {str(e)}")
-    finally:
-        del sessions[user_id]
-        
-                
+        except ValueError:
+            await event.respond("Invalid input! Please ensure the input format is correct.")
+        except Exception as e:
+            await event.respond(f"An error occurred: {str(e)}")
+        finally:
+            del sessions[user_id]
+            
