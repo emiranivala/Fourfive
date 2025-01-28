@@ -131,7 +131,7 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
 
                 await edit.delete()
 
-except (ChannelBanned, ChannelInvalid, ChannelPrivate, ChatIdInvalid, ChatInvalid):
+        except (ChannelBanned, ChannelInvalid, ChannelPrivate, ChatIdInvalid, ChatInvalid):
             await app.edit_message_text(sender, edit_id, "Have you joined the channel?")
             return
         except Exception as e:
@@ -212,6 +212,35 @@ COLLECTION_NAME = "super_user"
 mongo_client = pymongo.MongoClient(MONGODB_CONNECTION_STRING)
 db = mongo_client[DB_NAME]
 collection = db[COLLECTION_NAME]
+
+def load_authorized_users():
+    """
+    Load authorized user IDs from the MongoDB collection
+    """
+    authorized_users = set()
+    for user_doc in collection.find():
+        if "user_id" in user_doc:
+            authorized_users.add(user_doc["user_id"])
+    return authorized_users
+
+def save_authorized_users(authorized_users):
+    """
+    Save authorized user IDs to the MongoDB collection
+    """
+    collection.delete_many({})
+    for user_id in authorized users:
+        collection.insert_one({"user_id": user_id})
+
+SUPER_USERS = load_author
+def save_authorized_users(authorized_users):
+    """
+    Save authorized user IDs to the MongoDB collection
+    """
+    collection.delete_many({})
+    for user_id in authorized_users:
+        collection.insert_one({"user_id": user_id})
+
+SUPER_USERS = load_authorized_users()
 
 def load_delete_words(user_id):
     """
