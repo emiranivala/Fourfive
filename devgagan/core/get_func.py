@@ -35,23 +35,6 @@ def split_file(file_path, chunk_size):
                 chunk_file.write(f.read(chunk_size))
                 yield chunk_filename
 
-async def send_file_in_chunks(app, sender, file_path, caption, edit):
-    chunk_size = 2 * 1024 * 1024 * 1024  # 2GB
-    for chunk in split_file(file_path, chunk_size):
-        try:
-            await app.send_document(
-                chat_id=sender,
-                document=chunk,
-                caption=caption,
-                progress=progress_bar,
-                progress_args=("**UPLOADING:**\n", edit, time.time())
-            )
-            os.remove(chunk)  # Delete chunk after sending
-        except Exception as e:
-            await app.send_message(sender, f"Failed to send chunk: {str(e)}")
-            break  # Stop sending chunks if an error occurs
-    os.remove(file_path)  # Delete the original file after sending all chunks
-
 async def get_msg(userbot, sender, edit_id, msg_link, i, message):
     edit = ""
     chat = ""
@@ -63,9 +46,10 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
     if 't.me/c/' in msg_link or 't.me/b/' in msg_link:
         parts = msg_link.split("/")
         if 't.me/b/' not in msg_link:
-            chat = int('-100' + str(parts[parts.index('c') + 1]))  # topic group/subgroup support enabled
+            chat = int('-100' + str(parts[parts.index('c') + 1])) # topic group/subgroup support enabled
         else:
             chat = msg_link.split("/")[-2]
+        file = ""
         try:
             chatx = message.chat.id
             msg = await userbot.get_messages(chat, msg_id)
@@ -74,12 +58,12 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
             if msg.service is not None or msg.empty is not None:
                 return None
             if msg.media:
-                snt_msgs = []  # AutoDeleter
+                snt_msgs = [] # AutoDeleter
                 if msg.media == MessageMediaType.WEB_PAGE:
                     target_chat_id = user_chat_ids.get(chatx, chatx)
                     edit = await app.edit_message_text(target_chat_id, edit_id, "Cloning...")
                     devgaganin = await app.send_message(sender, msg.text.markdown)
-                    snt_msgs.append(devgaganin)  # AutoDeleter
+                    snt_msgs.append(devgaganin) # AutoDeleter
                     if msg.pinned_message:
                         try:
                             await devgaganin.pin(both_sides=True)
@@ -103,10 +87,51 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
                     progress=progress_bar,
                     progress_args=("**__Downloading: __**", edit, time.time())
                 )
-                await send_file_in_chunks(app, sender, file, caption, edit)  # Send file in chunks
+                file_size = os.path.getsize(file)
+                threshold_size = 2 * 1024 * 1024 * 1024  # 2GB
+
+                if file_size > threshold_size:  # If file size > 2GB, split into chunks
+                    chunk_size = 2 * 1024 * 1024 * 1024  # 2GB
+                    for chunk in split_file(file, chunk_size):
+                        await app.send_document(
+                            chat_id=sender,
+                            document=chunk,
+                            caption=caption,
+                            progress=progress_bar,
+                            progress_args=("**UPLOADING:**\n", edit, time.time())
+                        )
+                        os.remove(chunk)
+                else:  # If file size <= 2GB, handle as intended
+                    if msg.media == MessageMediaType.VIDEO and msg.video.mime_type in ["video/mp4", "video/x-matroska"]:
+                        metadata = video_metadata(file)
+                        width = metadata['width']
+                        height = metadata['height']
+                        duration = metadata['duration']
+                        thumb_path = await screenshot(file, duration, chatx)
+                        await app.send_video(
+                            chat_id=sender,
+                            video=file,
+                            caption=caption,
+                            height=height,
+                            width=width,
+                            duration=duration,
+                            thumb=thumb_path,
+                            progress=progress_bar,
+                            progress_args=("**UPLOADING:**\n", edit, time.time())
+                        )
+                    else:
+                        await app.send_document(
+                            chat_id=sender,
+                            document=file,
+                            caption=caption,
+                            progress=progress_bar,
+                            progress_args=("**UPLOADING:**\n", edit, time.time())
+                        )
+                os.remove(file)
+
                 await edit.delete()
 
-        except (ChannelBanned, ChannelInvalid, ChannelPrivate, ChatIdInvalid, ChatInvalid):
+except (ChannelBanned, ChannelInvalid, ChannelPrivate, ChatIdInvalid, ChatInvalid):
             await app.edit_message_text(sender, edit_id, "Have you joined the channel?")
             return
         except Exception as e:
@@ -122,10 +147,14 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
             await app.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')
 
 async def copy_message_with_chat_id(client, sender, chat_id, message_id):
+    # Get the user's set chat ID, if available; otherwise, use the original sender ID
     target_chat_id = user_chat_ids.get(sender, sender)
     
     try:
+        # Fetch the message using get_message
         msg = await client.get_messages(chat_id, message_id)
+        
+        # Modify the caption based on user's custom caption preference
         custom_caption = get_user_caption_preference(sender)
         original_caption = msg.caption if msg.caption else ''
         final_caption = f"{original_caption}" if custom_caption else f"{original_caption}"
@@ -148,10 +177,13 @@ async def copy_message_with_chat_id(client, sender, chat_id, message_id):
             elif msg.media == MessageMediaType.PHOTO:
                 result = await client.send_photo(target_chat_id, msg.photo.file_id, caption=caption)
             else:
+                # Use copy_message for any other media types
                 result = await client.copy_message(target_chat_id, chat_id, message_id)
         else:
+            # Use copy_message if there is no media
             result = await client.copy_message(target_chat_id, chat_id, message_id)
 
+        # Attempt to copy the result to the LOG_GROUP
         try:
             await result.copy(LOG_GROUP)
         except Exception:
@@ -172,37 +204,19 @@ async def copy_message_with_chat_id(client, sender, chat_id, message_id):
 
 # ------------------------ Button Mode Editz FOR SETTINGS ----------------------------
 
+# MongoDB database name and collection name
 DB_NAME = "smart_users"
 COLLECTION_NAME = "super_user"
 
+# Establish a connection to MongoDB
 mongo_client = pymongo.MongoClient(MONGODB_CONNECTION_STRING)
 db = mongo_client[DB_NAME]
 collection = db[COLLECTION_NAME]
 
-def load_authorized_users():
-    authorized_users = set()
-    for user_doc in collection.find():
-        if "user_id" in user_doc:
-            authorized_users.add(user_doc["user_id"])
-    return authorized_users
-
-def save_authorized_users(authorized_users):
-    collection.delete_many({})
-    for user_id in authorized_users:
-        collection.insert_one({"user_id": user_id})
-
-SUPER_USERS = load_authorized_users()
-
-user_chat_ids = {}
-
-MDB_NAME = "logins"
-MCOLLECTION_NAME = "stringsession"
-
-m_client = pymongo.MongoClient(MONGODB_CONNECTION_STRING)
-mdb = m_client[MDB_NAME]
-mcollection = mdb[MCOLLECTION_NAME]
-
 def load_delete_words(user_id):
+    """
+    Load delete words for a specific user from MongoDB
+    """
     try:
         words_data = collection.find_one({"_id": user_id})
         if words_data:
@@ -214,6 +228,9 @@ def load_delete_words(user_id):
         return set()
 
 def save_delete_words(user_id, delete_words):
+    """
+    Save delete words for a specific user to MongoDB
+    """
     try:
         collection.update_one(
             {"_id": user_id},
@@ -247,7 +264,7 @@ def save_replacement_words(user_id, replacements):
 # Initialize the dictionary to store user preferences for renaming
 user_rename_preferences = {}
 
-# Initialize the dictionary to store user caption preferences
+# Initialize the dictionary to store user caption
 user_caption_preferences = {}
 
 # Function to load user session from MongoDB
@@ -301,7 +318,8 @@ async def settings_command(event):
         caption=MESS,
         buttons=buttons
     )
-    pending_photos = {}
+
+pending_photos = {}
 
 @gf.on(events.CallbackQuery)
 async def callback_query_handler(event):
@@ -325,7 +343,6 @@ async def callback_query_handler(event):
 
     elif event.data == b'addsession':
         await event.respond("This method depreciated ... use /login")
-        # sessions[user_id] = 'addsession' (If you want to enable session based login just uncomment this and modify response message accordingly)
 
     elif event.data == b'delete':
         await event.respond("Send words separated by space to delete them from caption/filename ...")
@@ -368,6 +385,7 @@ async def callback_query_handler(event):
             await event.respond('Thumbnail removed successfully!')
         except FileNotFoundError:
             await event.respond("No thumbnail found to remove.")
+
 @gf.on(events.NewMessage(func=lambda e: e.sender_id in pending_photos))
 async def save_thumbnail(event):
     user_id = event.sender_id  # Use event.sender_id as user_id
@@ -391,61 +409,57 @@ async def handle_user_input(event):
     if user_id in sessions:
         session_type = sessions[user_id]
 
-        try:
-            if session_type == 'setchat':
+        if session_type == 'setchat':
+            try:
                 chat_id = int(event.text)
                 user_chat_ids[user_id] = chat_id
                 await event.respond("Chat ID set successfully!")
+            except ValueError:
+                await event.respond("Invalid chat ID!")
+        
+        elif session_type == 'setrename':
+            custom_rename_tag = event.text
+            await set_rename_command(user_id, custom_rename_tag)
+            await event.respond(f"Custom rename tag set to: {custom_rename_tag}")
+        
+        elif session_type == 'setcaption':
+            custom_caption = event.text
+            await set_caption_command(user_id, custom_caption)
+            await event.respond(f"Custom caption set to: {custom_caption}")
 
-            elif session_type == 'setrename':
-                custom_rename_tag = event.text
-                await set_rename_command(user_id, custom_rename_tag)
-                await event.respond(f"Custom rename tag set to: {custom_rename_tag}")
-
-            elif session_type == 'setcaption':
-                custom_caption = event.text
-                await set_caption_command(user_id, custom_caption)
-                await event.respond(f"Custom caption set to: {custom_caption}")
-
-            elif session_type == 'setreplacement':
-                match = re.match(r"'(.+)' '(.+)'", event.text)
-                if not match:
-                    await event.respond("Usage: 'WORD(s)' 'REPLACEWORD'")
-                else:
-                    word, replace_word = match.groups()
-                    delete_words = load_delete_words(user_id)
-                    if word in delete_words:
-                        await event.respond(f"The word '{word}' is in the delete set and cannot be replaced.")
-                    else:
-                        replacements = load_replacement_words(user_id)
-                        replacements[word] = replace_word
-                        save_replacement_words(user_id, replacements)
-                        await event.respond(f"Replacement saved: '{word}' will be replaced with '{replace_word}'")
-
-            elif session_type == 'addsession':
-                session_data = {
-                    "user_id": user_id,
-                    "session_string": event.text
-                }
-                mcollection.update_one(
-                    {"user_id": user_id},
-                    {"$set": session_data},
-                    upsert=True
-                )
-                await event.respond("Session string added successfully.")
-
-            elif session_type == 'deleteword':
-                words_to_delete = event.message.text.split()
+        elif session_type == 'setreplacement':
+            match = re.match(r"'(.+)' '(.+)'", event.text)
+            if not match:
+                await event.respond("Usage: 'WORD(s)' 'REPLACEWORD'")
+            else:
+                word, replace_word = match.groups()
                 delete_words = load_delete_words(user_id)
-                delete_words.update(words_to_delete)
-                save_delete_words(user_id, delete_words)
-                await event.respond(f"Words added to delete list: {', '.join(words_to_delete)}")
+                if word in delete_words:
+                    await event.respond(f"The word '{word}' is in the delete set and cannot be replaced.")
+                else:
+                    replacements = load_replacement_words(user_id)
+                    replacements[word] = replace_word
+                    save_replacement_words(user_id, replacements)
+                    await event.respond(f"Replacement saved: '{word}' will be replaced with '{replace_word}'")
 
-        except ValueError:
-            await event.respond("Invalid input! Please ensure the input format is correct.")
-        except Exception as e:
-            await event.respond(f"An error occurred: {str(e)}")
-        finally:
-            del sessions[user_id]
+        elif session_type == 'addsession':
+            # Store session string in MongoDB
+            session_data = {
+                "user_id": user_id,
+                "session_string": event.text
+            }
+            mcollection.update_one(
+                {"user_id": user_id},
+                {"$set": session_data},
+                upsert=True
+            )
+            await event.respond("Session string added successfully.")
                 
-   
+        elif session_type == 'deleteword':
+            words_to_delete = event.message.text.split()
+            delete_words = load_delete_words(user_id)
+            delete_words.update(words_to_delete)
+            save_delete_words(user_id, delete_words)
+            await event.respond(f"Words added to delete list: {', '.join(words_to_delete)}")
+
+        del sessions[user_id]
