@@ -228,15 +228,6 @@ def save_authorized_users(authorized_users):
     Save authorized user IDs to the MongoDB collection
     """
     collection.delete_many({})
-    for user_id in authorized users:
-        collection.insert_one({"user_id": user_id})
-
-SUPER_USERS = load_author
-def save_authorized_users(authorized_users):
-    """
-    Save authorized user IDs to the MongoDB collection
-    """
-    collection.delete_many({})
     for user_id in authorized_users:
         collection.insert_one({"user_id": user_id})
 
