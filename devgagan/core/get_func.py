@@ -111,6 +111,7 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
             return
         except Exception as e:
             await app.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')
+
     else:
         edit = await app.edit_message_text(sender, edit_id, "Cloning...")
         try:
@@ -275,8 +276,9 @@ async def set_caption_command(user_id, custom_caption):
 # Function to get the user's custom caption preference
 def get_user_caption_preference(user_id):
     # Retrieve the user's custom caption if set, or default to an empty string
-    return user_caption_preferences.get(str(user_id), '')
-    # Initialize the dictionary to store user sessions
+    return user_caption_preferences.get(str(user_id), ''
+
+# Initialize the dictionary to store user sessions
 sessions = {}
 
 SET_PIC = "settings.jpg"
@@ -367,7 +369,6 @@ async def callback_query_handler(event):
             await event.respond('Thumbnail removed successfully!')
         except FileNotFoundError:
             await event.respond("No thumbnail found to remove.")
-
 @gf.on(events.NewMessage(func=lambda e: e.sender_id in pending_photos))
 async def save_thumbnail(event):
     user_id = event.sender_id  # Use event.sender_id as user_id
@@ -447,4 +448,4 @@ async def handle_user_input(event):
             await event.respond(f"An error occurred: {str(e)}")
         finally:
             del sessions[user_id]
-            
+
