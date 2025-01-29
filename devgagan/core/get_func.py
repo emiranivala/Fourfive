@@ -94,202 +94,217 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
                         except:
                             pass
                     return
-        edit = await app.edit_message_text(sender, edit_id, "Trying to Download...")
-        file = await userbot.download_media(
-            msg,
-            progress=progress_bar,
-            progress_args=("**__Downloading: __**", edit, time.time()))
-
-        custom_rename_tag = get_user_rename_preference(chatx)
-        last_dot_index = str(file).rfind('.')
-        if last_dot_index != -1 and last_dot_index != 0:
-            ggn_ext = str(file)[last_dot_index + 1:]
-            if ggn_ext.isalpha() and len(ggn_ext) <= 4:
-                if ggn_ext.lower() == 'mov':
-                    original_file_name = str(file)[:last_dot_index]
-                    file_extension = ggn_ext.lower()
-                    if file_extension == 'mov': # fixed mov
-                        file_extension = 'mp4'
+                    
+            
+            edit = await app.edit_message_text(sender, edit_id, "Trying to Download...")
+            file = await userbot.download_media(
+                msg,
+                progress=progress_bar,
+                progress_args=("**__Downloading: __**",edit,time.time()))
+            
+            custom_rename_tag = get_user_rename_preference(chatx)
+            last_dot_index = str(file).rfind('.')
+            if last_dot_index != -1 and last_dot_index != 0:
+                ggn_ext = str(file)[last_dot_index + 1:]
+                if ggn_ext.isalpha() and len(ggn_ext) <= 4:
+                    if ggn_ext.lower() == 'mov':
+                        original_file_name = str(file)[:last_dot_index]
+                        file_extension = ggn_ext.lower()
+                        if file_extension == 'mov': # fixed mov
+                            file_extension = 'mp4'
+                    else:
+                        original_file_name = str(file)[:last_dot_index]
+                        file_extension = ggn_ext
                 else:
-                    original_file_name = str(file)[:last_dot_index]
-                    file_extension = ggn_ext
+                    original_file_name = str(file)
+                    file_extension = 'mp4'
             else:
                 original_file_name = str(file)
                 file_extension = 'mp4'
-        else:
-            original_file_name = str(file)
-            file_extension = 'mp4'
 
-        delete_words = load_delete_words(chatx)
-        for word in delete_words:
-            original_file_name = original_file_name.replace(word, "")
-        video_file_name = original_file_name + " " + custom_rename_tag
-        replacements = load_replacement_words(chatx)
-        for word, replace_word in replacements.items():
-            original_file_name = original_file_name.replace(word, replace_word)
-        new_file_name = original_file_name + " " + custom_rename_tag + "." + file_extension
-        os.rename(file, new_file_name)
-        file = new_file_name
-
-        # CODES are hidden
-
-        await edit.edit('Trying to Upload ...')
-
-        if msg.media == MessageMediaType.VIDEO and msg.video.mime_type in ["video/mp4", "video/x-matroska"]:
-            snt_msgs = [] #AutoDeleter
-
-            metadata = video_metadata(file)
-            width = metadata['width']
-            height = metadata['height']
-            duration = metadata['duration']
-
-            if duration <= 300:
-                devgaganin = await app.send_video(chat_id=sender, video=file, caption=caption, height=height, width=width, duration=duration, thumb=None, progress=progress_bar, progress_args=('**UPLOADING:**\n', edit, time.time()))
-                snt_msgs.append(devgaganin) #AutoDeleter
-                if msg.pinned_message:
-                    try:
-                        await devgaganin.pin(both_sides=True)
-                    except Exception as e:
-                        await devgaganin.pin()
-                await devgaganin.copy(LOG_GROUP)
-                await edit.delete()
-                await message.reply_text(f"Content will be deleted in 5 minutes.\nForward to saved messages", parse_mode=ParseMode.MARKDOWN)
-                await asyncio.sleep(SECONDS)
-                for devgaganin in snt_msgs:
-                    try:
-                        await devgaganin.delete()
-                    except:
-                        pass
-                return
-
-            delete_words = load_delete_words(sender)
-            custom_caption = get_user_caption_preference(sender)
-            original_caption = msg.caption if msg.caption else ''
-            final_caption = f"{original_caption}" if custom_caption else f"{original_caption}"
-
-            replacements = load_replacement_words(sender)
+            delete_words = load_delete_words(chatx)
+            for word in delete_words:
+                original_file_name = original_file_name.replace(word, "")
+            video_file_name = original_file_name + " " + custom_rename_tag
+            replacements = load_replacement_words(chatx)
             for word, replace_word in replacements.items():
-                final_caption = final_caption.replace(word, replace_word)
-            caption = f"{final_caption}\n\n__**{custom_caption}**__" if custom_caption else f"{final_caption}"
+                original_file_name = original_file_name.replace(word, replace_word)
+            new_file_name = original_file_name + " " + custom_rename_tag + "." + file_extension
+            os.rename(file, new_file_name)
+            file = new_file_name
 
-            target_chat_id = user_chat_ids.get(chatx, chatx)
+            # CODES are hidden             
 
-            thumb_path = await screenshot(file, duration, chatx)
-            try:
-                devgaganin = await app.send_video(
-                    chat_id=target_chat_id,
-                    video=file,
-                    caption=caption,
-                    supports_streaming=True,
-                    height=height,
-                    width=width,
-                    duration=duration,
-                    thumb=thumb_path,
-                    progress=progress_bar,
-                    progress_args=(
+            await edit.edit('Trying to Uplaod ...')
+            
+            if msg.media == MessageMediaType.VIDEO and msg.video.mime_type in ["video/mp4", "video/x-matroska"]:
+                snt_msgs = [] #AutoDeleter
+
+                metadata = video_metadata(file)      
+                width= metadata['width']
+                height= metadata['height']
+                duration= metadata['duration']
+
+                if duration <= 300:
+                    devgaganin = await app.send_video(chat_id=sender, video=file, caption=caption, height=height, width=width, duration=duration, thumb=None, progress=progress_bar, progress_args=('**UPLOADING:**\n', edit, time.time()))
+                    snt_msgs.append(devgaganin) #AutoDeleter
+                    if msg.pinned_message:
+                        try:
+                            await devgaganin.pin(both_sides=True)
+                        except Exception as e:
+                            await devgaganin.pin()
+                    await devgaganin.copy(LOG_GROUP)
+                    await edit.delete()
+                    await message.reply_text(f"Content will be deleted in 5 minutes.\nForward to saved messages", parse_mode=ParseMode.MARKDOWN)
+                    await asyncio.sleep(SECONDS)
+                    for devgaganin in snt_msgs:
+                        try:
+                            await devgaganin.delete()
+                        except:
+                            pass
+                    return
+                
+                delete_words = load_delete_words(sender)
+                custom_caption = get_user_caption_preference(sender)
+                original_caption = msg.caption if msg.caption else ''
+                final_caption = f"{original_caption}" if custom_caption else f"{original_caption}"
+                
+                replacements = load_replacement_words(sender)
+                for word, replace_word in replacements.items():
+                    final_caption = final_caption.replace(word, replace_word)
+                caption = f"{final_caption}\n\n__**{custom_caption}**__" if custom_caption else f"{final_caption}"
+
+                target_chat_id = user_chat_ids.get(chatx, chatx)
+                
+                thumb_path = await screenshot(file, duration, chatx)              
+                try:
+                    devgaganin = await app.send_video(
+                        chat_id=target_chat_id,
+                        video=file,
+                        caption=caption,
+                        supports_streaming=True,
+                        height=height,
+                        width=width,
+                        duration=duration,
+                        thumb=thumb_path,
+                        progress=progress_bar,
+                        progress_args=(
                         '**__Uploading...__**',
                         edit,
                         time.time()
-                    )
-                )
+                        )
+                       )
+                    if msg.pinned_message:
+                        try:
+                            await devgaganin.pin(both_sides=True)
+                        except Exception as e:
+                            await devgaganin.pin()
+                    await devgaganin.copy(LOG_GROUP)
+                except:
+                    await app.edit_message_text(sender, edit_id, "The bot is not an admin in the specified chat...")
+
+                os.remove(file)
+                    
+            elif msg.media == MessageMediaType.PHOTO:
+                await edit.edit("**Uploading photo...")
+                delete_words = load_delete_words(sender)
+                custom_caption = get_user_caption_preference(sender)
+                original_caption = msg.caption if msg.caption else ''
+                final_caption = f"{original_caption}" if custom_caption else f"{original_caption}"
+                replacements = load_replacement_words(sender)
+                for word, replace_word in replacements.items():
+                    final_caption = final_caption.replace(word, replace_word)
+                caption = f"{final_caption}\n\n__**{custom_caption}**__" if custom_caption else f"{final_caption}"
+
+                target_chat_id = user_chat_ids.get(sender, sender)
+                devgaganin = await app.send_photo(chat_id=target_chat_id, photo=file, caption=caption)
                 if msg.pinned_message:
                     try:
                         await devgaganin.pin(both_sides=True)
                     except Exception as e:
-                        await devgaganin.pin()
+                        await devgaganin.pin()                
                 await devgaganin.copy(LOG_GROUP)
-            except:
-                await app.edit_message_text(sender, edit_id, "The bot is not an admin in the specified chat...")
+            else:
+                thumb_path = thumbnail(chatx)
+                delete_words = load_delete_words(sender)
+                custom_caption = get_user_caption_preference(sender)
+                original_caption = msg.caption if msg.caption else ''
+                final_caption = f"{original_caption}" if custom_caption else f"{original_caption}"
+                replacements = load_replacement_words(chatx)
+                for word, replace_word in replacements.items():
+                    final_caption = final_caption.replace(word, replace_word)
+                caption = f"{final_caption}\n\n__**{custom_caption}**__" if custom_caption else f"{final_caption}"
+                file_extension = file_extension.lower() # fixed all video document files sent as video files
+                video_extensions = {
+    'mkv', 'mp4', 'webm', 'mpe4', 'mpeg', 'ts', 'avi', 'flv', 'mov', 
+    'm4v', '3gp', '3g2', 'wmv', 'vob', 'ogv', 'ogx', 'qt', 'f4v', 
+    'f4p', 'f4a', 'f4b', 'dat', 'rm', 'rmvb', 'asf', 'amv', 'divx'
+                }
 
-            os.remove(file)
+                target_chat_id = user_chat_ids.get(chatx, chatx)
+                try:
+                    if file_extension in video_extensions:
+                        metadata = video_metadata(file)
+                        width= metadata['width']
+                        height= metadata['height']
+                        duration= metadata['duration']
+                        thumb_path = await screenshot(file, duration, chatx)
+                        devgaganin = await app.send_video(
+                            chat_id=target_chat_id,
+                            video=file,
+                            caption=caption,
+                            supports_streaming=True,
+                            height=height,
+                            width=width,
+                            duration=duration,
+                            thumb=thumb_path,
+                            progress=progress_bar,
+                            progress_args=(
+                                '**Uploading...**',
+                                edit,
+                                time.time()
+                            )
+                        )
+                    else:
+                        devgaganin = await app.send_document(
+                            chat_id=target_chat_id,
+                            document=file,
+                            caption=caption,
+                            thumb=thumb_path,
+                            progress=progress_bar,
+                            progress_args=(
+                                '**Uploading...**',
+                                edit,
+                                time.time()
+                            )
+                        )
 
-        elif msg.media == MessageMediaType.PHOTO:
-    await edit.edit("**Uploading photo...")
-    delete_words = load_delete_words(sender)
-    custom_caption = get_user_caption_preference(sender)
-    original_caption = msg.caption if msg.caption else ''
-    final_caption = f"{original_caption}" if custom_caption else f"{original_caption}"
-    replacements = load_replacement_words(sender)
-    for word, replace_word in replacements.items():
-        final_caption = final_caption.replace(word, replace_word)
-    caption = f"{final_caption}\n\n__**{custom_caption}**__" if custom_caption else f"{final_caption}"
-
-    target_chat_id = user_chat_ids.get(sender, sender)
-    devgaganin = await app.send_photo(chat_id=target_chat_id, photo=file, caption=caption)
-    if msg.pinned_message:
-        try:
-            await devgaganin.pin(both_sides=True)
-        except Exception as e:
-            await devgaganin.pin()
-    await devgaganin.copy(LOG_GROUP)
-else:
-    thumb_path = thumbnail(chatx)
-    delete_words = load_delete_words(sender)
-    custom_caption = get_user_caption_preference(sender)
-    original_caption = msg.caption if msg.caption else ''
-    final_caption = f"{original_caption}" if custom_caption else f"{original_caption}"
-    replacements = load_replacement_words(chatx)
-    for word, replace_word in replacements.items():
-        final_caption = final_caption.replace(word, replace_word)
-    caption = f"{final_caption}\n\n__**{custom_caption}**__" if custom_caption else f"{final_caption}"
-    file_extension = file_extension.lower() # fixed all video document files sent as video files
-    video_extensions = {
-        'mkv', 'mp4', 'webm', 'mpe4', 'mpeg', 'ts', 'avi', 'flv', 'mov', 
-        'm4v', '3gp', '3g2', 'wmv', 'vob', 'ogv', 'ogx', 'qt', 'f4v', 
-        'f4p', 'f4a', 'f4b', 'dat', 'rm', 'rmvb', 'asf', 'amv', 'divx'
-    }
-
-    target_chat_id = user_chat_ids.get(chatx, chatx)
-    try:
-        if file_extension in video_extensions:
-            metadata = video_metadata(file)
-            width = metadata['width']
-            height = metadata['height']
-            duration = metadata['duration']
-            thumb_path = await screenshot(file, duration, chatx)
-            devgaganin = await app.send_video(
-                chat_id=target_chat_id,
-                video=file,
-                caption=caption,
-                supports_streaming=True,
-                height=height,
-                width=width,
-                duration=duration,
-                thumb=thumb_path,
-                progress=progress_bar,
-                progress_args=(
-                    '**Uploading...**',
-                    edit,
-                    time.time()
-                )
-            )
-        else:
-            devgaganin = await app.send_document(
-                chat_id=target_chat_id,
-                document=file,
-                caption=caption,
-                thumb=thumb_path,
-                progress=progress_bar,
-                progress_args=(
-                    '**Uploading...**',
-                    edit,
-                    time.time()
-                )
-            )
-
-        await devgaganin.copy(LOG_GROUP)
-    except:
-        await app.edit_message_text(sender, edit_id, "The bot is not an admin in the specified chat.")
-
-    os.remove(file)
+                    await devgaganin.copy(LOG_GROUP)
+                except:
+                    await app.edit_message_text(sender, edit_id, "The bot is not an admin in the specified chat.") 
+                
+                os.remove(file)
                         
-await edit.delete()
-
-except (ChannelBanned, ChannelInvalid, ChannelPrivate, ChatIdInvalid, ChatInvalid):
-    await app.edit_message_text(sender, edit_id, "Have you joined the channel?")
-    return
-except Exception as e:
-    await app.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')       
+            await edit.delete()
+        
+        except (ChannelBanned, ChannelInvalid, ChannelPrivate, ChatIdInvalid, ChatInvalid):
+            await app.edit_message_text(sender, edit_id, "Have you joined the channel?")
+            return
+        except Exception as e:
+            await app.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')       
+        
+    else:
+        edit = await app.edit_message_text(sender, edit_id, "Cloning...")
+        try:
+            chat = msg_link.split("/")[-2]
+            await copy_message_with_chat_id(app, sender, chat, msg_id) 
+            await edit.delete()
+        except Exception as e:
+            await app.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')
+            
+        
+                    
+               
 
 async def copy_message_with_chat_id(client, sender, chat_id, message_id):
     # Get the user's set chat ID, if available; otherwise, use the original sender ID
