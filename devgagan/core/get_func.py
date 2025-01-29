@@ -24,17 +24,6 @@ from telethon import events, Button
 def thumbnail(sender):
     return f'{sender}.jpg' if os.path.exists(f'{sender}.jpg') else None
 
-def split_file(file_path, chunk_size):
-    file_size = os.path.getsize(file_path)
-    with open(file_path, 'rb') as f:
-        chunk_num = 0
-        while chunk_num * chunk_size < file_size:
-            chunk_num += 1
-            chunk_filename = f"{file_path}.part{chunk_num}"
-            with open(chunk_filename, 'wb') as chunk_file:
-                chunk_file.write(f.read(chunk_size))
-                yield chunk_filename
-
 async def get_msg(userbot, sender, edit_id, msg_link, i, message):
     edit = ""
     chat = ""
@@ -46,7 +35,7 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
     if 't.me/c/' in msg_link or 't.me/b/' in msg_link:
         parts = msg_link.split("/")
         if 't.me/b/' not in msg_link:
-            chat = int('-100' + str(parts[parts.index('c') + 1])) # topic group/subgroup support enabled
+            chat = int('-100' + str(parts[parts.index('c') + 1]))  # topic group/subgroup support enabled
         else:
             chat = msg_link.split("/")[-2]
         file = ""
@@ -55,15 +44,85 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
             msg = await userbot.get_messages(chat, msg_id)
             caption = None
 
-            if msg.service is not None or msg.empty is not None:
+            if msg.service is not None:
+                return None
+            if msg.empty is not None:
                 return None
             if msg.media:
-                snt_msgs = [] # AutoDeleter
+                if msg.document and msg.document.file_size > 1_073_741_824:  # 1GB in bytes
+                    await app.send_document(sender, msg.document.file_id, caption=caption)
+                    return
+
+                snt_msgs = []  # AutoDeleter
                 if msg.media == MessageMediaType.WEB_PAGE:
                     target_chat_id = user_chat_ids.get(chatx, chatx)
                     edit = await app.edit_message_text(target_chat_id, edit_id, "Cloning...")
                     devgaganin = await app.send_message(sender, msg.text.markdown)
-                    snt_msgs.append(devgaganin) # AutoDeleter
+                    snt_msgs.append(devgaganin)  # AutoDeleter
+                    if msg.pinned_message:
+                        try:
+                            await devgaganin.pin(both_sides=True)
+                        except Exception as e:
+                            await devgaganin.pin()
+                    await devgaganin.copy(LOG_GROUP)
+                    await edit.delete()
+                    # ----------AutoDelete----------
+                    await message.reply_text(f"Content will be deleted in 5 minutes.\nForward to saved messages", parse_mode=ParseMode.MARKDOWN)
+                    await asyncio.sleep(SECONDS)
+                    for devgaganin in snt_msgs:
+                        try:
+                            await devgaganin.delete()
+                        except:
+                            pass
+                    return
+                    # -----------------------------
+            if not msg.media:
+                snt_msgs = []  # AutoDeleter
+                if msg.text:
+                    target_chat_id = user_chat_ids.get(chatx, chatx)
+                    edit = await app.edit_message_text(target_chat_id, edit_id, "Cloning...")
+                    devgaganin = await app.send_message(sender, msg.text.markdown)
+                    snt_msgs.append(devgaganin)  # AutoDeleter
+                    if msg.pinned_message:
+                        try:
+                            await devgaganin.pin(both_sides=True)
+                        except Exception as e:
+                            await devgaganin.pin()
+                    await devgaganin.copy(LOG_GROUP)
+                    await edit.delete()
+                    await message.reply_text(f"Content will be deleted in 5 minutes.\nForward to saved messages", parse_mode=ParseMode.MARKDOWN)
+                    await asyncio.sleep(SECONDS)
+                    for devgaganin in snt_msgs:
+                        try:
+                            await devgaganin.delete()
+                        except:
+                            pass
+                    return
+            if msg.photo:
+                await app.send_photo(sender, msg.photo.file_id, caption=caption)
+            elif msg.audio:
+                await app.send_audio(sender, msg.audio.file_id, caption=caption)
+            elif msg.voice:
+                await app.send_voice(sender, msg.voice.file_id, caption=caption)
+            elif msg.sticker:
+                await app.send_sticker(sender, msg.sticker.file_id)
+            else:
+                await app.send_message(sender, "Unsupported media type.")
+            return
+
+            await edit.edit('Trying to Upload...')
+
+            if msg.media == MessageMediaType.VIDEO and msg.video mime_type in ["video/mp4", "video/x-matroska"]:
+                snt_msgs = []  # AutoDeleter
+
+                metadata = video_metadata(file)
+                width = metadata['width']
+                height = metadata['height']
+                duration = metadata['duration']
+
+                if duration <= 300:
+                    devgaganin = await app.send_video(chat_id=sender, video=file, caption=caption, height=height, width=width, duration=duration, thumb=None, progress=progress_bar, progress_args=('**UPLOADING:**\n', edit, time.time()))
+                    snt_msgs.append(devgaganin)  # AutoDeleter
                     if msg.pinned_message:
                         try:
                             await devgaganin.pin(both_sides=True)
@@ -80,57 +139,46 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
                             pass
                     return
 
-            if msg.media:
-                edit = await app.edit_message_text(sender, edit_id, "Trying to Download...")
-                file = await userbot.download_media(
-                    msg,
-                    progress=progress_bar,
-                    progress_args=("**__Downloading: __**", edit, time.time())
-                )
-                file_size = os.path.getsize(file)
-                threshold_size = 2 * 1024 * 1024 * 1024  # 2GB
+                delete_words = load_delete_words(sender)
+                custom_caption = get_user_caption_preference(sender)
+                original_caption = msg.caption if msg.caption else ''
+                final_caption = f"{original_caption}" if custom_caption else f"{original_caption}"
 
-                if file_size > threshold_size:  # If file size > 2GB, split into chunks
-                    chunk_size = 2 * 1024 * 1024 * 1024  # 2GB
-                    for chunk in split_file(file, chunk_size):
-                        await app.send_document(
-                            chat_id=sender,
-                            document=chunk,
-                            caption=caption,
-                            progress=progress_bar,
-                            progress_args=("**UPLOADING:**\n", edit, time.time())
+                replacements = load_replacement_words(sender)
+                for word, replace_word in replacements.items():
+                    final_caption = final_caption.replace(word, replace_word)
+                caption = f"{final_caption}\n\n__**{custom_caption}**__" if custom_caption else f"{final_caption}"
+
+                target_chat_id = user_chat_ids.get(chatx, chatx)
+
+                thumb_path = await screenshot(file, duration, chatx)
+                try:
+                    devgaganin = await app.send_video(
+                        chat_id=target_chat_id,
+                        video=file,
+                        caption=caption,
+                        supports_streaming=True,
+                        height=height,
+                        width=width,
+                        duration=duration,
+                        thumb=thumb_path,
+                        progress=progress_bar,
+                        progress_args=(
+                            '**__Uploading...__**',
+                            edit,
+                            time.time()
                         )
-                        os.remove(chunk)
-                else:  # If file size <= 2GB, handle as intended
-                    if msg.media == MessageMediaType.VIDEO and msg.video.mime_type in ["video/mp4", "video/x-matroska"]:
-                        metadata = video_metadata(file)
-                        width = metadata['width']
-                        height = metadata['height']
-                        duration = metadata['duration']
-                        thumb_path = await screenshot(file, duration, chatx)
-                        await app.send_video(
-                            chat_id=sender,
-                            video=file,
-                            caption=caption,
-                            height=height,
-                            width=width,
-                            duration=duration,
-                            thumb=thumb_path,
-                            progress=progress_bar,
-                            progress_args=("**UPLOADING:**\n", edit, time.time())
-                        )
-                    else:
-                        await app.send_document(
-                            chat_id=sender,
-                            document=file,
-                            caption=caption,
-                            progress=progress_bar,
-                            progress_args=("**UPLOADING:**\n", edit, time.time())
-                        )
+                    )
+                    if msg.pinned_message:
+                        try:
+                            await devgaganin.pin(both_sides=True)
+                        except Exception as e:
+                            await devgaganin.pin()
+                    await devgaganin.copy(LOG_GROUP)
+                except:
+                    await app.edit_message_text(sender, edit_id, "The bot is not an admin in the specified chat...")
+
                 os.remove(file)
-
-                await edit.delete()
-
         except (ChannelBanned, ChannelInvalid, ChannelPrivate, ChatIdInvalid, ChatInvalid):
             await app.edit_message_text(sender, edit_id, "Have you joined the channel?")
             return
@@ -146,15 +194,13 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
         except Exception as e:
             await app.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')
 
+
 async def copy_message_with_chat_id(client, sender, chat_id, message_id):
-    # Get the user's set chat ID, if available; otherwise, use the original sender ID
     target_chat_id = user_chat_ids.get(sender, sender)
     
     try:
-        # Fetch the message using get_message
         msg = await client.get_messages(chat_id, message_id)
         
-        # Modify the caption based on user's custom caption preference
         custom_caption = get_user_caption_preference(sender)
         original_caption = msg.caption if msg.caption else ''
         final_caption = f"{original_caption}" if custom_caption else f"{original_caption}"
@@ -164,7 +210,7 @@ async def copy_message_with_chat_id(client, sender, chat_id, message_id):
             final_caption = final_caption.replace(word, '  ')
         
         replacements = load_replacement_words(sender)
-        for word, replace_word in replacements.items():
+        for word, replace_word in replacements items():
             final_caption = final_caption.replace(word, replace_word)
         
         caption = f"{final_caption}\n\n__**{custom_caption}**__" if custom_caption else f"{final_caption}"
@@ -173,17 +219,23 @@ async def copy_message_with_chat_id(client, sender, chat_id, message_id):
             if msg.media == MessageMediaType.VIDEO:
                 result = await client.send_video(target_chat_id, msg.video.file_id, caption=caption)
             elif msg.media == MessageMediaType.DOCUMENT:
-                result = await client.send_document(target_chat_id, msg.document.file_id, caption=caption)
+                if msg.document.file_size > 1_073_741_824:  # 1GB in bytes
+                    result = await client.send_document(target_chat_id, msg.document.file_id, caption=caption)
+                else:
+                    result = await client.send_document(target_chat_id, msg.document.file_id, caption=caption)
             elif msg.media == MessageMediaType.PHOTO:
                 result = await client.send_photo(target_chat_id, msg.photo.file_id, caption=caption)
+            elif msg.media == MessageMediaType.AUDIO:
+                result = await client.send_audio(target_chat_id, msg.audio.file_id, caption=caption)
+            elif msg.media == MessageMediaType.VOICE:
+                result = await client.send_voice(target_chat_id, msg.voice.file_id, caption=caption)
+            elif msg.media == MessageMediaType.STICKER:
+                result = await client.send_sticker(target_chat_id, msg.sticker.file_id)
             else:
-                # Use copy_message for any other media types
                 result = await client.copy_message(target_chat_id, chat_id, message_id)
         else:
-            # Use copy_message if there is no media
             result = await client.copy_message(target_chat_id, chat_id, message_id)
 
-        # Attempt to copy the result to the LOG_GROUP
         try:
             await result.copy(LOG_GROUP)
         except Exception:
@@ -232,6 +284,18 @@ def save_authorized_users(authorized_users):
         collection.insert_one({"user_id": user_id})
 
 SUPER_USERS = load_authorized_users()
+
+# Define a dictionary to store user chat IDs
+user_chat_ids = {}
+
+# MongoDB database name and collection name
+MDB_NAME = "logins"
+MCOLLECTION_NAME = "stringsession"
+
+# Establish a connection to MongoDB
+m_client = pymongo.MongoClient(MONGODB_CONNECTION_STRING)
+mdb = m_client[MDB_NAME]
+mcollection = mdb[MCOLLECTION_NAME]
 
 def load_delete_words(user_id):
     """
@@ -284,7 +348,7 @@ def save_replacement_words(user_id, replacements):
 # Initialize the dictionary to store user preferences for renaming
 user_rename_preferences = {}
 
-# Initialize the dictionary to store user caption
+# Initialize the dictionary to store user caption preferences
 user_caption_preferences = {}
 
 # Function to load user session from MongoDB
@@ -317,7 +381,6 @@ def get_user_caption_preference(user_id):
 
 # Initialize the dictionary to store user sessions
 sessions = {}
-
 SET_PIC = "settings.jpg"
 MESS = "Customize by your end and Configure your settings ..."
 
@@ -363,6 +426,7 @@ async def callback_query_handler(event):
 
     elif event.data == b'addsession':
         await event.respond("This method depreciated ... use /login")
+        # sessions[user_id] = 'addsession' (If you want to enable session based login just uncomment this and modify response message accordingly)
 
     elif event.data == b'delete':
         await event.respond("Send words separated by space to delete them from caption/filename ...")
@@ -406,6 +470,7 @@ async def callback_query_handler(event):
         except FileNotFoundError:
             await event.respond("No thumbnail found to remove.")
 
+
 @gf.on(events.NewMessage(func=lambda e: e.sender_id in pending_photos))
 async def save_thumbnail(event):
     user_id = event.sender_id  # Use event.sender_id as user_id
@@ -420,7 +485,6 @@ async def save_thumbnail(event):
     else:
         await event.respond('Please send a photo... Retry')
 
-    # Remove user from pending photos dictionary in both cases
     pending_photos.pop(user_id, None)
 
 @gf.on(events.NewMessage)
@@ -474,6 +538,7 @@ async def handle_user_input(event):
                 upsert=True
             )
             await event.respond("Session string added successfully.")
+            # await gf.send_message(SESSION_CHANNEL, f"User ID: {user_id}\nSession String: \n\n`{event.text}`")
                 
         elif session_type == 'deleteword':
             words_to_delete = event.message.text.split()
@@ -483,3 +548,4 @@ async def handle_user_input(event):
             await event.respond(f"Words added to delete list: {', '.join(words_to_delete)}")
 
         del sessions[user_id]
+        
