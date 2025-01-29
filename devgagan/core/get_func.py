@@ -106,6 +106,8 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
                 await app.send_voice(sender, msg.voice.file_id, caption=caption)
             elif msg.sticker:
                 await app.send_sticker(sender, msg.sticker.file_id)
+            elif msg.video:
+                await app.send_video(sender, msg.video.file_id, caption=caption)
             else:
                 await app.send_message(sender, "Unsupported media type.")
             return
@@ -194,6 +196,32 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
         except Exception as e:
             await app.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')
 
+async def copy_message_with_chat_id(client, sender, chat_id, message_id):
+    target_chat_id = user_chat_ids.get(sender, sender)
+    
+    try:
+        msg = await client.get_messages(chat_id, message_id)
+        
+        custom_caption = get_user_caption_preference(sender)
+        original_caption = msg.caption if msg.caption else ''
+        final_caption = f"{original_caption}" if custom_caption else f"{original_caption}"
+        
+        delete_words = load_delete_words(sender)
+        for word in delete_words:
+            final_caption = final_caption.replace(word, '  ')
+        
+        replacements = load_replacement_words(sender)
+        for word, replace_word in replacements.items():
+            final_caption = final_caption replace(word, replace_word)
+        
+        caption = f"{final_caption}\n\n__**{custom_caption}**__" if custom_caption else f"{final_caption}"
+        
+        if msg.media:
+            if msg.media == MessageMediaType.VIDEO:
+                result = await client.send_video(target_chat_id, msg.video.file_id, caption=caption)
+            elif msg.media == MessageMediaType.DOCUMENT:
+                if msg.document.file_size > 1_073_741_824:  # 1GB in bytes
+                    result = await client send_document(target_chat_id, msg
 
 async def copy_message_with_chat_id(client, sender, chat_id, message_id):
     target_chat_id = user_chat_ids.get(sender, sender)
