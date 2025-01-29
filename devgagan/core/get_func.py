@@ -112,7 +112,7 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
 
             await edit.edit('Trying to Upload...')
 
-            if msg.media == MessageMediaType.VIDEO and msg.video mime_type in ["video/mp4", "video/x-matroska"]:
+            if msg.media == MessageMediaType.VIDEO and msg.video.mime_type in ["video/mp4", "video/x-matroska"]:
                 snt_msgs = []  # AutoDeleter
 
                 metadata = video_metadata(file)
