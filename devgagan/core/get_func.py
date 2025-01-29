@@ -210,7 +210,7 @@ async def copy_message_with_chat_id(client, sender, chat_id, message_id):
             final_caption = final_caption.replace(word, '  ')
         
         replacements = load_replacement_words(sender)
-        for word, replace_word in replacements items():
+        for word, replace_word in replacements.items():
             final_caption = final_caption.replace(word, replace_word)
         
         caption = f"{final_caption}\n\n__**{custom_caption}**__" if custom_caption else f"{final_caption}"
